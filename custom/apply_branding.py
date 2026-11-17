@@ -80,6 +80,7 @@ def main():
         for name, px in [("res/32x32.png", 32), ("res/64x64.png", 64),
                          ("res/128x128.png", 128), ("res/128x128@2x.png", 256),
                          ("res/icon.png", 512), ("flutter/assets/icon.png", 512)]:
+            px = min(px, img.width)  # não amplia além do original
             img.resize((px, px), Image.LANCZOS).save(ROOT / name)
         print("Ícone aplicado.")
     else:
