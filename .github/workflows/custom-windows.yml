@@ -167,9 +167,12 @@ jobs:
         shell: bash
         run: |
           sed -i '/dpiAware/d' res/manifest.xml
+          # O instalador procura "<app_name>.exe" na pasta instalada (get_install_info),
+          # então o executável precisa ter o nome do app, não rustdesk.exe.
+          mv ./rustdesk/rustdesk.exe "./rustdesk/${{ inputs.app_name }}.exe"
           pushd ./libs/portable
           pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+          python3 ./generate.py -f ../../rustdesk/ -o . -e "../../rustdesk/${{ inputs.app_name }}.exe"
           popd
           mkdir -p ./Output
           SAFE_NAME=$(echo "${{ inputs.app_name }}" | tr ' ' '-' | tr -cd '[:alnum:]-_')
