@@ -38,10 +38,17 @@ def rs_str(s):
 
 def main():
     app_name = os.environ.get("APP_NAME", "").strip()
+    display_name = os.environ.get("DISPLAY_NAME", "").strip() or app_name
+    conn_type = os.environ.get("CONN_TYPE", "").strip()
     server = os.environ.get("RENDEZVOUS_SERVER", "").strip()
     key = os.environ.get("RS_PUB_KEY", "").strip()
     if not app_name:
         fail("APP_NAME vazio")
+    # Mesma regra do instalador (src/platform/mod.rs): sem espaço nem acento.
+    if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_-]*", app_name):
+        fail(f"APP_NAME '{app_name}' inválido: use só letras, números, hífen e _ (sem espaço)")
+    if conn_type not in ("", "incoming", "outgoing"):
+        fail(f"CONN_TYPE '{conn_type}' inválido: use incoming, outgoing ou vazio")
     if not server:
         fail("secret RENDEZVOUS_SERVER não cadastrado")
     if not key:
@@ -56,12 +63,18 @@ def main():
              f'pub const RENDEZVOUS_SERVERS: &[&str] = &["{rs_str(server)}"];')
     sub_once(cfg, r'^pub const RS_PUB_KEY: &str = ".*";',
              f'pub const RS_PUB_KEY: &str = "{rs_str(key)}";')
+    if conn_type:
+        # incoming = só recebe acesso (cliente); outgoing = só conecta (equipe)
+        sub_once(cfg,
+                 r'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);',
+                 'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = '
+                 f'RwLock::new(HashMap::from([("conn-type".to_owned(), "{conn_type}".to_owned())]));')
 
     rc = ROOT / "flutter/windows/runner/Runner.rc"
     sub_once(rc, r'VALUE "FileDescription", "RustDesk Remote Desktop"',
-             f'VALUE "FileDescription", "{app_name}"')
+             f'VALUE "FileDescription", "{display_name}"')
     sub_once(rc, r'VALUE "ProductName", "RustDesk"',
-             f'VALUE "ProductName", "{app_name}"')
+             f'VALUE "ProductName", "{display_name}"')
 
     icon = CUSTOM / "icon.png"
     if icon.exists():
@@ -91,7 +104,8 @@ def main():
         shutil.copy(logo, ROOT / "flutter/assets/logo.png")
         print("Logo aplicado.")
 
-    print(f"Personalização aplicada: nome='{app_name}', servidor='{server}'.")
+    print(f"Personalização aplicada: nome='{app_name}', exibição='{display_name}', "
+          f"modo='{conn_type or 'completo'}', servidor='{server}'.")
 
 
 if __name__ == "__main__":

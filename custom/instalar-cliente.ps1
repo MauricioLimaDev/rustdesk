@@ -14,7 +14,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$Instalador,
     [string]$Senha,
-    [string]$NomeApp = "Suporte Appelsoft"
+    [string]$NomeApp = "SuporteAppelsoft"
 )
 
 $ErrorActionPreference = "Stop"
