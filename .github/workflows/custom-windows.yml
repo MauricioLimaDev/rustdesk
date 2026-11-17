@@ -73,6 +73,8 @@ jobs:
           APP_NAME: ${{ inputs.app_name }}
           DISPLAY_NAME: ${{ inputs.display_name }}
           CONN_TYPE: ${{ inputs.conn_type != 'completo' && inputs.conn_type || '' }}
+          # login na API com o hbbs oficial: só quem conecta (equipe/completo) precisa
+          SKIP_LEGACY_SECURE_TCP: ${{ inputs.conn_type != 'incoming' && '1' || '0' }}
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
         run: |

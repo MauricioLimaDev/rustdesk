@@ -70,6 +70,16 @@ def main():
                  'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = '
                  f'RwLock::new(HashMap::from([("conn-type".to_owned(), "{conn_type}".to_owned())]));')
 
+    if os.environ.get("SKIP_LEGACY_SECURE_TCP") == "1":
+        # O hbbs oficial (OSS) não faz a troca de chave TCP. Com o usuário logado
+        # na API (token), o cliente exige essa troca e a conexão morre por timeout.
+        # A sessão entre as máquinas continua criptografada de ponta a ponta;
+        # só a sinalização com o hbbs fica sem a camada extra.
+        sub_once(ROOT / "src/client.rs",
+                 r'if !exchanged && legacy_secure \{',
+                 'if !exchanged && legacy_secure && false {')
+        print("Troca de chave legada com o hbbs desativada (login com API).")
+
     rc = ROOT / "flutter/windows/runner/Runner.rc"
     sub_once(rc, r'VALUE "FileDescription", "RustDesk Remote Desktop"',
              f'VALUE "FileDescription", "{display_name}"')
