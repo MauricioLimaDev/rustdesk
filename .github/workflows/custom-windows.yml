@@ -77,6 +77,7 @@ jobs:
           SKIP_LEGACY_SECURE_TCP: ${{ inputs.conn_type != 'incoming' && '1' || '0' }}
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+          API_SERVER: ${{ secrets.API_SERVER }}
         run: |
           pip3 install pillow
           python3 custom/apply_branding.py

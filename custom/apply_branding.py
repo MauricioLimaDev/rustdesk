@@ -70,6 +70,17 @@ def main():
                  'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = '
                  f'RwLock::new(HashMap::from([("conn-type".to_owned(), "{conn_type}".to_owned())]));')
 
+    api_server = os.environ.get("API_SERVER", "").strip().rstrip("/")
+    if api_server:
+        if not re.fullmatch(r"https?://[A-Za-z0-9.\-]+(:\d+)?", api_server):
+            fail(f"API_SERVER '{api_server}' inválido (ex.: https://suporte.exemplo.com.br)")
+        # Sem isso, como o servidor está embutido (não configurado), o cliente
+        # cai no padrão https://admin.rustdesk.com para login e livro de endereços.
+        sub_once(ROOT / "src/common.rs",
+                 r'^    "https://admin\.rustdesk\.com"\.to_owned\(\)$',
+                 f'    "{rs_str(api_server)}".to_owned()')
+        print(f"API embutida: {api_server}")
+
     if os.environ.get("SKIP_LEGACY_SECURE_TCP") == "1":
         # O hbbs oficial (OSS) não faz a troca de chave TCP. Com o usuário logado
         # na API (token), o cliente exige essa troca e a conexão morre por timeout.
