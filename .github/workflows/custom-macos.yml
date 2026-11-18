@@ -1,6 +1,6 @@
 name: Build personalizado (macOS, experimental)
 
-# Mesmo branding do Windows (custom/apply_branding.py), para Apple Silicon e Intel.
+# Mesmo branding do Windows (custom/apply_branding.py), só Apple Silicon (M1 ou posterior).
 # Sem conta Apple Developer: o app sai só com assinatura ad-hoc (sem notarização),
 # então no primeiro uso o macOS pede para liberar em Privacidade e Segurança.
 
@@ -49,7 +49,6 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          - { target: x86_64-apple-darwin, os: macos-26-intel, extra-build-args: "", arch: x86_64, nome: intel }
           - { target: aarch64-apple-darwin, os: macos-26, extra-build-args: "--screencapturekit", arch: aarch64, nome: arm64 }
     steps:
       - name: Export GitHub Actions cache environment variables
