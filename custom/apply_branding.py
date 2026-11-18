@@ -91,6 +91,18 @@ def main():
                  'if !exchanged && legacy_secure && false {')
         print("Troca de chave legada com o hbbs desativada (login com API).")
 
+    if conn_type == "outgoing" and api_server:
+        # Só-saída não registra no hbbs (ninguém acessa o PC do técnico) e, por isso,
+        # também não mandava presença à API. Aqui a presença (heartbeat/sysinfo) é
+        # iniciada antes do laço, sem registrar no hbbs: o PC aparece em
+        # "Meus dispositivos" e "Dispositivos", mas continua sem aceitar acessos.
+        sub_once(ROOT / "src/rendezvous_mediator.rs",
+                 r'        if config::is_outgoing_only\(\) \{\r?\n            loop \{',
+                 '        if config::is_outgoing_only() {\n'
+                 '            crate::hbbs_http::sync::start();\n'
+                 '            loop {')
+        print("Só-saída com presença na API ativada.")
+
     rc = ROOT / "flutter/windows/runner/Runner.rc"
     sub_once(rc, r'VALUE "FileDescription", "RustDesk Remote Desktop"',
              f'VALUE "FileDescription", "{display_name}"')
