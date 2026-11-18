@@ -101,6 +101,11 @@ def main():
                  '        if config::is_outgoing_only() {\n'
                  '            crate::hbbs_http::sync::start();\n'
                  '            loop {')
+        # Sem serviço instalado, o só-saída fica com stop-service = Y, e o laço de
+        # presença pulava todo envio por causa disso.
+        sub_once(ROOT / "src/hbbs_http/sync.rs",
+                 r'if config::option2bool\("stop-service", &Config::get_option\("stop-service"\)\) \{',
+                 'if !config::is_outgoing_only() && config::option2bool("stop-service", &Config::get_option("stop-service")) {')
         print("Só-saída com presença na API ativada.")
 
     if os.environ.get("AUTO_RECORD_OUTGOING") == "1":
