@@ -103,6 +103,15 @@ def main():
                  '            loop {')
         print("Só-saída com presença na API ativada.")
 
+    if os.environ.get("AUTO_RECORD_OUTGOING") == "1":
+        # Grava toda sessão de saída. Fica em OVERWRITE_LOCAL_SETTINGS: vale sempre,
+        # não pode ser salvo diferente e a tela mostra a opção travada.
+        sub_once(cfg,
+                 r'pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);',
+                 'pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = '
+                 'RwLock::new(HashMap::from([("allow-auto-record-outgoing".to_owned(), "Y".to_owned())]));')
+        print("Gravação automática das sessões de saída ligada e travada.")
+
     rc = ROOT / "flutter/windows/runner/Runner.rc"
     sub_once(rc, r'VALUE "FileDescription", "RustDesk Remote Desktop"',
              f'VALUE "FileDescription", "{display_name}"')

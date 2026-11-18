@@ -75,6 +75,8 @@ jobs:
           CONN_TYPE: ${{ inputs.conn_type != 'completo' && inputs.conn_type || '' }}
           # login na API com o hbbs oficial: só quem conecta (equipe/completo) precisa
           SKIP_LEGACY_SECURE_TCP: ${{ inputs.conn_type != 'incoming' && '1' || '0' }}
+          # quem conecta (equipe/completo) grava toda sessão, sem poder desligar
+          AUTO_RECORD_OUTGOING: ${{ inputs.conn_type != 'incoming' && '1' || '0' }}
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
           API_SERVER: ${{ secrets.API_SERVER }}
