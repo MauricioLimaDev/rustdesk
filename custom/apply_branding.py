@@ -152,6 +152,11 @@ def main():
                          ("res/icon.png", 512), ("flutter/assets/icon.png", 512)]:
             px = min(px, img.width)  # não amplia além do original
             img.resize((px, px), Image.LANCZOS).save(ROOT / name)
+        # Ícone do app no Mac (Finder/Dock)
+        icns = ROOT / "flutter/macos/Runner/AppIcon.icns"
+        if icns.exists():
+            side = 1024 if img.width >= 1024 else 512
+            img.resize((side, side), Image.LANCZOS).save(icns, format="ICNS")
         print("Ícone aplicado.")
     else:
         print("custom/icon.png não existe: mantendo o ícone original.")
