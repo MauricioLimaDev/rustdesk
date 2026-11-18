@@ -117,6 +117,16 @@ def main():
                  'RwLock::new(HashMap::from([("allow-auto-record-outgoing".to_owned(), "Y".to_owned())]));')
         print("Gravação automática das sessões de saída ligada e travada.")
 
+    # A desinstalação grava stop-service = Y na configuração do usuário, que fica
+    # no PC. Numa reinstalação o instalador lia esse Y e não criava o serviço
+    # (aparecia "Iniciar serviço"). Instalar passa a sempre zerar a opção, então o
+    # serviço é criado com início automático; o botão continua lá se algo falhar.
+    sub_once(ROOT / "src/platform/windows.rs",
+             r'^    let uninstall_str = get_uninstall\(false, false\)\?;',
+             '    Config::set_option("stop-service".into(), "".into());\n'
+             '    let uninstall_str = get_uninstall(false, false)?;')
+    print("Instalação sempre cria o serviço (ignora stop-service antigo).")
+
     rc = ROOT / "flutter/windows/runner/Runner.rc"
     sub_once(rc, r'VALUE "FileDescription", "RustDesk Remote Desktop"',
              f'VALUE "FileDescription", "{display_name}"')
