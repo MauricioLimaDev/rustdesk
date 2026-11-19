@@ -28,6 +28,10 @@ on:
           - incoming
           - outgoing
           - completo
+      publicar:
+        description: "Publicar o DMG na VPS ao terminar (download do painel)"
+        type: boolean
+        default: true
 
 env:
   MAC_RUST_VERSION: "1.81"
@@ -200,3 +204,12 @@ jobs:
           name: ${{ inputs.app_name }}-mac-${{ matrix.job.nome }}
           path: ./Output
           if-no-files-found: error
+
+      - name: Publicar na VPS
+        if: ${{ inputs.publicar && inputs.app_name == 'SuporteAppelsoft-Equipe' }}
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: bash custom/publicar-vps.sh mac equipe "1.5.3.${{ github.run_number }}" "Output/${{ inputs.app_name }}-mac-${{ matrix.job.nome }}.dmg"

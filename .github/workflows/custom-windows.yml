@@ -26,6 +26,10 @@ on:
           - incoming
           - outgoing
           - completo
+      publicar:
+        description: "Publicar na VPS ao terminar (download do painel + atualização automática)"
+        type: boolean
+        default: true
 
 env:
   SCITER_RUST_VERSION: "1.75"
@@ -54,6 +58,10 @@ jobs:
     env:
       TARGET: x86_64-pc-windows-msvc
       VCPKG_TRIPLET: x64-windows-static
+      # Canal de atualização: cliente, equipe ou vazio (outro nome = sem atualizador).
+      CANAL: ${{ inputs.app_name == 'SuporteAppelsoft' && 'cliente' || (inputs.app_name == 'SuporteAppelsoft-Equipe' && 'equipe' || '') }}
+      # Versão de publicação: a do RustDesk + nº do build (sempre maior que a anterior).
+      VERSAO_PUB: "1.5.3.${{ github.run_number }}"
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
@@ -77,6 +85,7 @@ jobs:
           SKIP_LEGACY_SECURE_TCP: ${{ inputs.conn_type != 'incoming' && '1' || '0' }}
           # quem conecta (equipe/completo) grava toda sessão, sem poder desligar
           AUTO_RECORD_OUTGOING: ${{ inputs.conn_type != 'incoming' && '1' || '0' }}
+          ATUALIZADOR: ${{ env.CANAL != '' && '1' || '0' }}
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
           API_SERVER: ${{ secrets.API_SERVER }}
@@ -166,6 +175,27 @@ jobs:
           name: topmostwindow-artifacts-x64
           path: "./rustdesk"
 
+      - name: Incluir o atualizador automático
+        if: ${{ env.CANAL != '' }}
+        shell: bash
+        env:
+          CHAVE: ${{ secrets.ATUALIZADOR_CHAVE }}
+        run: |
+          set -e
+          BASE="https://remoto.appelsoft.com.br/download"
+          if [ "$CANAL" = "cliente" ]; then
+            URL_CANAL="$BASE/versao.json"
+          else
+            if ! [[ "$CHAVE" =~ ^[A-Za-z0-9]{32,}$ ]]; then
+              echo "::error::Secret ATUALIZADOR_CHAVE ausente ou inválido (32+ letras/números)."
+              exit 1
+            fi
+            URL_CANAL="$BASE/a/$CHAVE/versao.json"
+          fi
+          cp custom/atualizar.ps1 ./rustdesk/atualizar.ps1
+          printf '{"versao": "%s", "canal": "%s"}\n' "$VERSAO_PUB" "$URL_CANAL" > ./rustdesk/atualizacao.json
+          echo "Atualizador incluído: canal $CANAL, versão $VERSAO_PUB"
+
       - name: Build self-extracted executable
         shell: bash
         run: |
@@ -187,3 +217,13 @@ jobs:
           name: ${{ inputs.app_name }}-windows-x64
           path: ./Output
           if-no-files-found: error
+
+      - name: Publicar na VPS
+        if: ${{ inputs.publicar && env.CANAL != '' }}
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          CHAVE: ${{ secrets.ATUALIZADOR_CHAVE }}
+        run: bash custom/publicar-vps.sh windows "$CANAL" "$VERSAO_PUB" Output/*.exe

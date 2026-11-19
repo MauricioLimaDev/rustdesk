@@ -132,6 +132,21 @@ def main():
              '    let uninstall_str = get_uninstall(false, false)?;')
     print("Instalação sempre cria o serviço (ignora stop-service antigo).")
 
+    if os.environ.get("ATUALIZADOR") == "1":
+        # O workflow põe atualizar.ps1 e atualizacao.json junto do exe. A instalação
+        # registra a tarefa do atualizador; a desinstalação apaga a tarefa.
+        sub_once(ROOT / "src/platform/windows.rs",
+                 r'^\{after_install\}\r?\n\{sleep\}$',
+                 '{after_install}\n'
+                 r'if exist \"{path}\\atualizar.ps1\" powershell -NoProfile -NonInteractive '
+                 r'-ExecutionPolicy Bypass -WindowStyle Hidden -File \"{path}\\atualizar.ps1\" -Registrar'
+                 '\n{sleep}')
+        sub_once(ROOT / "src/platform/windows.rs",
+                 r'run_cmds\(get_uninstall\(kill_self, true\)\?, true, "uninstall"\)',
+                 r'run_cmds(format!("schtasks /delete /tn \"{} - Atualizador\" /f\n{}", '
+                 r'crate::get_app_name(), get_uninstall(kill_self, true)?), true, "uninstall")')
+        print("Atualizador automático registrado na instalação.")
+
     # Não deixa conectar no próprio ID (barra de ID, favoritos, livro de endereços:
     # tudo passa por connect() do common.dart).
     sub_once(ROOT / "flutter/lib/common.dart",
