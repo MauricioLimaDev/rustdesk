@@ -1,6 +1,11 @@
 lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
+        ("Logs", "Logs"),
+        ("Open log folder", "Open log folder"),
+        ("Clear logs", "Clear old logs"),
+        ("Logs cleared", "Log files removed"),
+        ("clear_logs_tip", "Removes old log files. Files in use stay. Logs from the Windows service are in another folder and need administrator rights."),
         ("desk_tip", "Your desktop can be accessed with this ID and password."),
         ("connecting_status", "Connecting to the RustDesk network..."),
         ("not_ready_status", "Not ready. Please check your connection"),

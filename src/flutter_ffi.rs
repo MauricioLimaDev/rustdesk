@@ -1419,6 +1419,37 @@ pub fn main_get_my_id() -> String {
     get_id()
 }
 
+pub fn main_get_log_dir() -> String {
+    config::Config::log_path().to_string_lossy().to_string()
+}
+
+/// Apaga os .log da pasta de logs (e subpastas). Os arquivos em uso (_rCURRENT.log)
+/// ficam, porque o app está escrevendo neles. Devolve quantos foram apagados.
+pub fn main_clear_logs() -> i32 {
+    fn limpar(dir: &std::path::Path, n: &mut i32) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                limpar(&p, n);
+                continue;
+            }
+            let nome = p
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
+            if nome.ends_with(".log") && !nome.contains("rCURRENT") && std::fs::remove_file(&p).is_ok() {
+                *n += 1;
+            }
+        }
+    }
+    let mut n = 0;
+    limpar(&config::Config::log_path(), &mut n);
+    n
+}
+
 pub fn main_get_uuid() -> String {
     get_uuid()
 }

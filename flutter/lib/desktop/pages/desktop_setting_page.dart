@@ -58,6 +58,7 @@ enum SettingsTabKey {
   display,
   account,
   printer,
+  logs,
   about,
 }
 
@@ -80,6 +81,7 @@ class DesktopSettingPage extends StatefulWidget {
         !bind.isDisableSettings() &&
         bind.mainGetBuildinOption(key: kOptionHideRemotePrinterSetting) != 'Y')
       SettingsTabKey.printer,
+    if (!isWeb) SettingsTabKey.logs,
     SettingsTabKey.about,
   ];
 
@@ -211,6 +213,10 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
           settingTabs
               .add(_TabInfo(tab, 'Printer', Icons.print_outlined, Icons.print));
           break;
+        case SettingsTabKey.logs:
+          settingTabs.add(_TabInfo(
+              tab, 'Logs', Icons.description_outlined, Icons.description));
+          break;
         case SettingsTabKey.about:
           settingTabs
               .add(_TabInfo(tab, 'About', Icons.info_outline, Icons.info));
@@ -241,6 +247,9 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
           break;
         case SettingsTabKey.printer:
           children.add(const _Printer());
+          break;
+        case SettingsTabKey.logs:
+          children.add(const _Logs());
           break;
         case SettingsTabKey.about:
           children.add(const _About());
@@ -2559,6 +2568,56 @@ class __PrinterState extends State<_Printer> {
         enabled: printerOptions.action != kValuePrinterIncomingJobDismiss,
       )
     ]);
+  }
+}
+
+// Aba Logs: abrir a pasta de logs e apagar os arquivos antigos.
+class _Logs extends StatefulWidget {
+  const _Logs({Key? key}) : super(key: key);
+
+  @override
+  State<_Logs> createState() => _LogsState();
+}
+
+class _LogsState extends State<_Logs> {
+  final _dir = ''.obs;
+  final _limpando = false.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    bind.mainGetLogDir().then((v) => _dir.value = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scrollController = ScrollController();
+    return SingleChildScrollView(
+      controller: scrollController,
+      child: _Card(title: 'Logs', children: [
+        Obx(() => SelectionArea(child: Text(_dir.value))
+            .marginOnly(left: _kContentHMargin, bottom: 8)),
+        _Button('Open log folder', () async {
+          final dir = _dir.value;
+          if (dir.isEmpty) return;
+          try {
+            await Directory(dir).create(recursive: true);
+          } catch (_) {}
+          launchUrl(Uri.file(dir));
+        }),
+        Obx(() => _Button('Clear logs', () async {
+              _limpando.value = true;
+              try {
+                final n = await bind.mainClearLogs();
+                showToast('${translate('Logs cleared')}: $n');
+              } finally {
+                _limpando.value = false;
+              }
+            }, enabled: !_limpando.value)),
+        Text(translate('clear_logs_tip'))
+            .marginOnly(left: _kContentHMargin, top: 8, bottom: 12),
+      ]),
+    );
   }
 }
 

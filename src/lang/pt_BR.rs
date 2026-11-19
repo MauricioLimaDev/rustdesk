@@ -1,6 +1,11 @@
 lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
+        ("Logs", "Logs"),
+        ("Open log folder", "Abrir pasta de logs"),
+        ("Clear logs", "Limpar logs antigos"),
+        ("Logs cleared", "Arquivos de log apagados"),
+        ("clear_logs_tip", "Apaga os arquivos de log antigos. Os que estão em uso ficam. Os logs do serviço do Windows ficam em outra pasta e exigem administrador."),
         ("Status", "Status"),
         ("Your Desktop", "Seu Computador"),
         ("desk_tip", "Seu computador pode ser acessado com este ID e senha."),
