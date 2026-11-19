@@ -127,6 +127,21 @@ def main():
              '    let uninstall_str = get_uninstall(false, false)?;')
     print("Instalação sempre cria o serviço (ignora stop-service antigo).")
 
+    # Não deixa conectar no próprio ID (barra de ID, favoritos, livro de endereços:
+    # tudo passa por connect() do common.dart).
+    sub_once(ROOT / "flutter/lib/common.dart",
+             r'^  id = await bind\.mainHandleRelayId\(id: id\);',
+             '  id = await bind.mainHandleRelayId(id: id);\n'
+             "  if (id.split('@').first == (await bind.mainGetMyId()).replaceAll(' ', '')) {\n"
+             "    showToast(translate('cannot_connect_own_id'));\n"
+             '    return;\n'
+             '  }')
+    for lang, texto in [("en", "You cannot connect to your own ID."),
+                        ("pt_BR", "Não é possível conectar no seu próprio ID.")]:
+        sub_once(ROOT / f"src/lang/{lang}.rs", r'^    \[$',
+                 f'    [\n        ("cannot_connect_own_id", "{texto}"),')
+    print("Conexão ao próprio ID bloqueada.")
+
     rc = ROOT / "flutter/windows/runner/Runner.rc"
     sub_once(rc, r'VALUE "FileDescription", "RustDesk Remote Desktop"',
              f'VALUE "FileDescription", "{display_name}"')
