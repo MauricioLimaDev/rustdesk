@@ -89,6 +89,11 @@ def main():
         sub_once(ROOT / "src/client.rs",
                  r'if !exchanged && legacy_secure \{',
                  'if !exchanged && legacy_secure && false {')
+        # Mesmo caso no pedido de relay: sem isso, quem está logado espera 18 s pela
+        # troca de chave, o pedido nunca chega ao hbbr e dá "deadline has elapsed".
+        sub_once(ROOT / "src/client.rs",
+                 r'if !key\.is_empty\(\) && \(!token\.is_empty\(\) \|\| !switch_code\.is_empty\(\)\) \{',
+                 'if !key.is_empty() && (!token.is_empty() || !switch_code.is_empty()) && false {')
         print("Troca de chave legada com o hbbs desativada (login com API).")
 
     if conn_type == "outgoing" and api_server:
