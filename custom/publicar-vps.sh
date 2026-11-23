@@ -10,6 +10,7 @@
 #   cliente windows -> cliente.exe + versao.json            (link público /download/cliente)
 #   equipe  windows -> equipe.exe (painel) + a/<CHAVE>/equipe.exe + a/<CHAVE>/versao.json
 #   equipe  mac     -> equipe-mac-arm64.dmg (painel)
+# Cada arquivo do painel ganha um <arquivo>.versao com o número (mostrado nos Downloads).
 # Envia com nome temporário, confere o SHA-256 lá e só então troca (o json por último).
 set -euo pipefail
 
@@ -45,7 +46,7 @@ case "$PLATAFORMA/$CANAL" in
     printf '{"versao": "%s", "sha256": "%s", "url": "%s"}\n' "$VERSAO" "$HASH" "$BASE/cliente" > versao.json
     scp "${SSH_OPTS[@]}" versao.json "$DEST:$PASTA/$TMP.json"
     REMOTO="
-      cp -f $TMP.bin cliente.exe.novo && mv -f cliente.exe.novo cliente.exe &&
+      cp -f $TMP.bin cliente.exe.novo && mv -f cliente.exe.novo cliente.exe && echo '$VERSAO' > cliente.exe.versao &&
       { cp -f versao.json versao.json.anterior 2>/dev/null || true; } &&
       mv -f $TMP.json versao.json"
     ;;
@@ -54,12 +55,12 @@ case "$PLATAFORMA/$CANAL" in
     scp "${SSH_OPTS[@]}" versao.json "$DEST:$PASTA/$TMP.json"
     REMOTO="
       mkdir -p a/$CHAVE && chmod 755 a a/$CHAVE &&
-      cp -f $TMP.bin equipe.exe.novo && mv -f equipe.exe.novo equipe.exe &&
+      cp -f $TMP.bin equipe.exe.novo && mv -f equipe.exe.novo equipe.exe && echo '$VERSAO' > equipe.exe.versao &&
       cp -f $TMP.bin a/$CHAVE/equipe.exe.novo && mv -f a/$CHAVE/equipe.exe.novo a/$CHAVE/equipe.exe &&
       mv -f $TMP.json a/$CHAVE/versao.json"
     ;;
   mac/equipe)
-    REMOTO="cp -f $TMP.bin equipe-mac-arm64.dmg.novo && mv -f equipe-mac-arm64.dmg.novo equipe-mac-arm64.dmg"
+    REMOTO="cp -f $TMP.bin equipe-mac-arm64.dmg.novo && mv -f equipe-mac-arm64.dmg.novo equipe-mac-arm64.dmg && echo '$VERSAO' > equipe-mac-arm64.dmg.versao"
     ;;
   *)
     echo "::error::Combinação não suportada: $PLATAFORMA/$CANAL"; exit 1 ;;
