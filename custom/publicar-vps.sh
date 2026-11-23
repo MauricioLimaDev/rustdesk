@@ -36,13 +36,14 @@ SSH_OPTS=(-i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=30)
 DEST="$VPS_USER@$VPS_HOST"
 
 HASH=$(sha256sum "$ARQ" | cut -d' ' -f1)
-TMP=".upload-$PLATAFORMA-$CANAL"
+TMP=".upload-$PLATAFORMA-$CANAL-$VERSAO"
 echo "Publicando $CANAL ($PLATAFORMA) versão $VERSAO, sha256 $HASH"
 
 scp "${SSH_OPTS[@]}" "$ARQ" "$DEST:$PASTA/$TMP.bin"
 
 case "$PLATAFORMA/$CANAL" in
   windows/cliente)
+    VERFILE="cliente.exe.versao"
     printf '{"versao": "%s", "sha256": "%s", "url": "%s"}\n' "$VERSAO" "$HASH" "$BASE/cliente" > versao.json
     scp "${SSH_OPTS[@]}" versao.json "$DEST:$PASTA/$TMP.json"
     REMOTO="
@@ -51,6 +52,7 @@ case "$PLATAFORMA/$CANAL" in
       mv -f $TMP.json versao.json"
     ;;
   windows/equipe)
+    VERFILE="equipe.exe.versao"
     printf '{"versao": "%s", "sha256": "%s", "url": "%s"}\n' "$VERSAO" "$HASH" "$BASE/a/$CHAVE/equipe.exe" > versao.json
     scp "${SSH_OPTS[@]}" versao.json "$DEST:$PASTA/$TMP.json"
     REMOTO="
@@ -60,16 +62,29 @@ case "$PLATAFORMA/$CANAL" in
       mv -f $TMP.json a/$CHAVE/versao.json"
     ;;
   mac/equipe)
+    VERFILE="equipe-mac-arm64.dmg.versao"
     REMOTO="cp -f $TMP.bin equipe-mac-arm64.dmg.novo && mv -f equipe-mac-arm64.dmg.novo equipe-mac-arm64.dmg && echo '$VERSAO' > equipe-mac-arm64.dmg.versao"
     ;;
   *)
     echo "::error::Combinação não suportada: $PLATAFORMA/$CANAL"; exit 1 ;;
 esac
 
-ssh "${SSH_OPTS[@]}" "$DEST" "set -e; cd $PASTA &&
-  echo '$HASH  $TMP.bin' | sha256sum -c - &&
-  $REMOTO &&
-  rm -f $TMP.bin &&
-  chmod 644 *.exe *.json *.dmg 2>/dev/null; true"
-
+# Na VPS: um build de cada vez por canal (flock) e nunca troca por versão igual ou mais
+# antiga (dois builds terminando fora de ordem não voltam a versão).
+ssh "${SSH_OPTS[@]}" "$DEST" bash -s <<EOF
+set -e
+cd $PASTA
+exec 9>.publicar-$PLATAFORMA-$CANAL.lock
+flock 9
+atual=\$(cat $VERFILE 2>/dev/null || true)
+if [ -n "\$atual" ] && [ "\$(printf '%s\n%s\n' "\$atual" '$VERSAO' | sort -V | tail -1)" = "\$atual" ]; then
+  echo "::warning::Já está publicada a versão \$atual (igual ou mais nova que $VERSAO). Nada foi trocado."
+  rm -f $TMP.bin $TMP.json
+  exit 0
+fi
+echo '$HASH  $TMP.bin' | sha256sum -c -
+$REMOTO
+rm -f $TMP.bin
+chmod 644 *.exe *.json *.dmg *.versao 2>/dev/null || true
 echo "Publicado na VPS: $CANAL ($PLATAFORMA) $VERSAO"
+EOF
