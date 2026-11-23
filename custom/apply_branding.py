@@ -143,8 +143,17 @@ def main():
         # registra a tarefa do atualizador; a desinstalação apaga a tarefa.
         sub_once(ROOT / "src/platform/windows.rs",
                  r'^\{after_install\}\r?\n\{sleep\}$',
+                 # O instalador roda com PATH só em System32: o PowerShell vai pelo caminho
+                 # completo, com o caminho de módulos (ScheduledTasks) e TEMP definidos.
                  '{after_install}\n'
-                 r'if exist \"{path}\\atualizar.ps1\" powershell -NoProfile -NonInteractive '
+                 r'set \"PSModulePath=%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\Modules\"'
+                 '\n'
+                 r'set \"TEMP=%SystemRoot%\\Temp\"'
+                 '\n'
+                 r'set \"TMP=%SystemRoot%\\Temp\"'
+                 '\n'
+                 r'if exist \"{path}\\atualizar.ps1\" '
+                 r'\"%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -NonInteractive '
                  r'-ExecutionPolicy Bypass -WindowStyle Hidden -File \"{path}\\atualizar.ps1\" -Registrar'
                  '\n{sleep}')
         sub_once(ROOT / "src/platform/windows.rs",
