@@ -59,6 +59,7 @@ enum SettingsTabKey {
   account,
   printer,
   logs,
+  gravacoes,
   about,
 }
 
@@ -82,6 +83,7 @@ class DesktopSettingPage extends StatefulWidget {
         bind.mainGetBuildinOption(key: kOptionHideRemotePrinterSetting) != 'Y')
       SettingsTabKey.printer,
     if (!isWeb) SettingsTabKey.logs,
+    if (!isWeb && !bind.isIncomingOnly()) SettingsTabKey.gravacoes,
     SettingsTabKey.about,
   ];
 
@@ -217,6 +219,10 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
           settingTabs.add(_TabInfo(
               tab, 'Logs', Icons.description_outlined, Icons.description));
           break;
+        case SettingsTabKey.gravacoes:
+          settingTabs.add(_TabInfo(
+              tab, 'Recordings', Icons.videocam_outlined, Icons.videocam));
+          break;
         case SettingsTabKey.about:
           settingTabs
               .add(_TabInfo(tab, 'About', Icons.info_outline, Icons.info));
@@ -250,6 +256,9 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
           break;
         case SettingsTabKey.logs:
           children.add(const _Logs());
+          break;
+        case SettingsTabKey.gravacoes:
+          children.add(const _Gravacoes());
           break;
         case SettingsTabKey.about:
           children.add(const _About());
@@ -2568,6 +2577,115 @@ class __PrinterState extends State<_Printer> {
         enabled: printerOptions.action != kValuePrinterIncomingJobDismiss,
       )
     ]);
+  }
+}
+
+// Aba Gravações: pasta, recompactação (ffmpeg) e limpeza das antigas (mínimo 30 dias).
+const String _kOpRecompactar = 'gravacao-recompactar';
+const String _kOpDias = 'gravacao-dias';
+const int _kDiasMinimo = 30;
+
+class _Gravacoes extends StatefulWidget {
+  const _Gravacoes({Key? key}) : super(key: key);
+
+  @override
+  State<_Gravacoes> createState() => _GravacoesState();
+}
+
+class _GravacoesState extends State<_Gravacoes> {
+  final _recompactar = true.obs;
+  final _dias = TextEditingController();
+  late final bool _temFfmpeg;
+  late final String _dir;
+
+  int _diasAtual() {
+    final v = int.tryParse(bind.mainGetLocalOption(key: _kOpDias).trim()) ??
+        _kDiasMinimo;
+    return v < _kDiasMinimo ? _kDiasMinimo : v;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _temFfmpeg = bind.mainGravacoesTemFfmpeg();
+    _dir = bind.mainVideoSaveDirectory(root: false);
+    _recompactar.value = bind.mainGetLocalOption(key: _kOpRecompactar) != 'N';
+    _dias.text = _diasAtual().toString();
+  }
+
+  @override
+  void dispose() {
+    _dias.dispose();
+    super.dispose();
+  }
+
+  Future<void> _salvarDias() async {
+    var v = int.tryParse(_dias.text.trim()) ?? _kDiasMinimo;
+    if (v < _kDiasMinimo) v = _kDiasMinimo;
+    _dias.text = v.toString();
+    await bind.mainSetLocalOption(key: _kOpDias, value: v.toString());
+    showToast('${translate('Saved')}: $v ${translate('days')}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scrollController = ScrollController();
+    return SingleChildScrollView(
+      controller: scrollController,
+      child: Column(children: [
+        _Card(title: 'Recordings', children: [
+          SelectionArea(child: Text(_dir))
+              .marginOnly(left: _kContentHMargin, bottom: 8),
+          _Button('Open recording folder', () async {
+            if (_dir.isEmpty) return;
+            try {
+              await Directory(_dir).create(recursive: true);
+            } catch (_) {}
+            launchUrl(Uri.file(_dir));
+          }),
+          const SizedBox(height: 8),
+        ]),
+        _Card(title: 'Compression', children: [
+          Obx(() => Row(children: [
+                Checkbox(
+                  value: _recompactar.value,
+                  onChanged: _temFfmpeg
+                      ? (v) async {
+                          if (v == null) return;
+                          _recompactar.value = v;
+                          await bind.mainSetLocalOption(
+                              key: _kOpRecompactar, value: v ? '' : 'N');
+                        }
+                      : null,
+                ),
+                Expanded(child: Text(translate('recompress_recordings'))),
+              ]).marginOnly(left: _kCheckBoxLeftMargin)),
+          Text(translate(_temFfmpeg
+                  ? 'recompress_recordings_tip'
+                  : 'recompress_recordings_unavailable'))
+              .marginOnly(left: _kContentHMargin, bottom: 12),
+        ]),
+        _Card(title: 'Cleanup', children: [
+          Row(children: [
+            Text(translate('delete_recordings_older_than')),
+            SizedBox(
+              width: 70,
+              child: TextField(
+                controller: _dias,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textAlign: TextAlign.center,
+                onSubmitted: (_) => _salvarDias(),
+              ),
+            ).marginSymmetric(horizontal: 8),
+            Text(translate('days')),
+          ]).marginOnly(left: _kContentHMargin),
+          _Button('Save', _salvarDias).marginOnly(top: 8),
+          Text(translate('delete_recordings_tip'))
+              .marginOnly(left: _kContentHMargin, top: 8, bottom: 12),
+        ]),
+      ]),
+    );
   }
 }
 

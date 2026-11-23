@@ -2,6 +2,17 @@ lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Logs", "Logs"),
+        ("Recordings", "Recordings"),
+        ("Open recording folder", "Open recording folder"),
+        ("Compression", "Compression"),
+        ("Cleanup", "Cleanup"),
+        ("Saved", "Saved"),
+        ("days", "days"),
+        ("recompress_recordings", "Recompress recordings when the session ends"),
+        ("recompress_recordings_tip", "After the session ends, the recording is converted to a much smaller file in the background with low priority. Only still-screen parts are reduced; what changes on screen stays the same. Uncheck it if the computer gets slow."),
+        ("recompress_recordings_unavailable", "Recompression unavailable in this installation (ffmpeg not found)."),
+        ("delete_recordings_older_than", "Delete recordings older than"),
+        ("delete_recordings_tip", "Minimum 30 days. Cleanup runs automatically every 10 minutes while the app is open."),
         ("Open log folder", "Open log folder"),
         ("Clear logs", "Clear old logs"),
         ("Logs cleared", "Log files removed"),

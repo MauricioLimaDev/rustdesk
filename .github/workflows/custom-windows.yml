@@ -175,6 +175,21 @@ jobs:
           name: topmostwindow-artifacts-x64
           path: "./rustdesk"
 
+      - name: Incluir ffmpeg (recompactar gravações)
+        # Só quem grava sessões (Equipe). Versão fixa, conferida pelo SHA-256.
+        if: ${{ inputs.conn_type != 'incoming' }}
+        shell: pwsh
+        run: |
+          $url = "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip"
+          $sha = "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba"
+          Invoke-WebRequest -Uri $url -OutFile ffmpeg.zip
+          $h = (Get-FileHash ffmpeg.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($h -ne $sha) { throw "SHA-256 do ffmpeg divergente: $h" }
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg-zip
+          $exe = Get-ChildItem ffmpeg-zip -Recurse -Filter ffmpeg.exe | Select-Object -First 1
+          Copy-Item $exe.FullName ./rustdesk/ffmpeg.exe
+          ./rustdesk/ffmpeg.exe -hide_banner -version | Select-Object -First 1
+
       - name: Incluir o atualizador automático
         if: ${{ env.CANAL != '' }}
         shell: bash

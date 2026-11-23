@@ -2,6 +2,17 @@ lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Logs", "Logs"),
+        ("Recordings", "Gravações"),
+        ("Open recording folder", "Abrir pasta de gravações"),
+        ("Compression", "Compactação"),
+        ("Cleanup", "Limpeza"),
+        ("Saved", "Salvo"),
+        ("days", "dias"),
+        ("recompress_recordings", "Recompactar as gravações ao terminar a sessão"),
+        ("recompress_recordings_tip", "Depois que a sessão termina, a gravação é convertida para um arquivo bem menor, em segundo plano e com prioridade baixa. Só os trechos de tela parada são reduzidos; o que muda na tela fica igual. Se o computador ficar lento, desmarque."),
+        ("recompress_recordings_unavailable", "Recompactação indisponível nesta instalação (ffmpeg não encontrado)."),
+        ("delete_recordings_older_than", "Apagar gravações com mais de"),
+        ("delete_recordings_tip", "Mínimo de 30 dias. A limpeza roda sozinha a cada 10 minutos com o app aberto."),
         ("Open log folder", "Abrir pasta de logs"),
         ("Clear logs", "Limpar logs antigos"),
         ("Logs cleared", "Arquivos de log apagados"),

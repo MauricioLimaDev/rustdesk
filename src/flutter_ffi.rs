@@ -1450,6 +1450,20 @@ pub fn main_clear_logs() -> i32 {
     n
 }
 
+/// Inicia a manutenção das gravações (recompactar e apagar antigas). Só a janela principal chama.
+pub fn main_iniciar_gravacoes() {
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    crate::gravacoes::iniciar();
+}
+
+/// true se o ffmpeg foi instalado junto (sem ele não há recompactação).
+pub fn main_gravacoes_tem_ffmpeg() -> SyncReturn<bool> {
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    return SyncReturn(crate::gravacoes::ffmpeg().is_some());
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    SyncReturn(false)
+}
+
 pub fn main_get_uuid() -> String {
     get_uuid()
 }

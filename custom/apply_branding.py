@@ -121,6 +121,12 @@ def main():
                  'pub static ref OVERWRITE_LOCAL_SETTINGS: RwLock<HashMap<String, String>> = '
                  'RwLock::new(HashMap::from([("allow-auto-record-outgoing".to_owned(), "Y".to_owned())]));')
         print("Gravação automática das sessões de saída ligada e travada.")
+        # Codec padrão VP9 (o "auto" escolhia H.264 de hardware, que grava arquivos bem
+        # maiores). O FPS continua 30. Quem quiser pode trocar o codec na sessão.
+        sub_once(cfg,
+                 r'self\.get_string\(key, "auto", vec!\["vp8", "vp9", "av1", "h264", "h265"\]\)',
+                 'self.get_string(key, "vp9", vec!["auto", "vp8", "av1", "h264", "h265"])')
+        print("Codec padrão da sessão: VP9.")
 
     # A desinstalação grava stop-service = Y na configuração do usuário, que fica
     # no PC. Numa reinstalação o instalador lia esse Y e não criava o serviço
