@@ -2114,6 +2114,29 @@ void editAbTagDialog(
   });
 }
 
+// Mostra a anotação do dispositivo só para leitura (texto selecionável, com Copiar).
+void viewAbPeerNoteDialog(String id) {
+  final note = gFFI.abModel.getPeerNote(id);
+  gFFI.dialogManager.show((setState, close, context) {
+    return CustomAlertDialog(
+      title: Text(translate("Note")),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 360, maxHeight: 400),
+        child: SingleChildScrollView(child: SelectableText(note)),
+      ),
+      actions: [
+        dialogButton("Copy", onPressed: () {
+          Clipboard.setData(ClipboardData(text: note));
+          showToast(translate("Copied"));
+        }, isOutline: true),
+        dialogButton("OK", onPressed: close),
+      ],
+      onSubmit: close,
+      onCancel: close,
+    );
+  });
+}
+
 void editAbPeerNoteDialog(String id) {
   var isInProgress = false;
   final currentNote = gFFI.abModel.getPeerNote(id);

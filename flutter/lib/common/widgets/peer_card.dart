@@ -1204,6 +1204,10 @@ class AddressBookPeerCard extends BasePeerCard {
     if (isWindows) {
       menuItems.add(_createShortCutAction(peer.id));
     }
+    // Ver a anotação sem editar (também em livros compartilhados só de leitura).
+    if (gFFI.abModel.getPeerNote(peer.id).trim().isNotEmpty) {
+      menuItems.add(_viewNoteAction(peer.id));
+    }
     if (gFFI.abModel.current.canWrite()) {
       if (isMobile || isDesktop || isWebDesktop) {
         menuItems.add(_renameAction(peer.id));
@@ -1251,6 +1255,21 @@ class AddressBookPeerCard extends BasePeerCard {
         editAbTagDialog(gFFI.abModel.getPeerTags(id), (selectedTag) async {
           await gFFI.abModel.changeTagForPeers([id], selectedTag);
         });
+      },
+      padding: super.menuPadding,
+      dismissOnClicked: true,
+    );
+  }
+
+  @protected
+  MenuEntryBase<String> _viewNoteAction(String id) {
+    return MenuEntryButton<String>(
+      childBuilder: (TextStyle? style) => Text(
+        translate('View note'),
+        style: style,
+      ),
+      proc: () {
+        viewAbPeerNoteDialog(id);
       },
       padding: super.menuPadding,
       dismissOnClicked: true,

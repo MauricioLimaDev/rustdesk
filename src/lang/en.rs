@@ -2,6 +2,8 @@ lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Logs", "Logs"),
+        ("View note", "View note"),
+        ("Copy", "Copy"),
         ("Checking...", "Checking..."),
         ("app_update_title", "Update"),
         ("Installed version", "Installed version"),
