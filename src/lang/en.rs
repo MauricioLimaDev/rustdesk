@@ -14,6 +14,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("up_to_date", "You are on the latest version."),
         ("update_started", "Update started. In 1 to 2 minutes the app closes, installs the new version and the service comes back by itself. With an open session, it waits until the session ends."),
         ("update_start_failed", "Could not start the update. Reinstall this version once to create the update task."),
+        ("update_session_open", "A session is open. Close it and click Update now again."),
+        ("update_closing", "Closing to update. The app reopens by itself on the new version in 1 to 2 minutes."),
         ("Restart application", "Restart application"),
         ("Close application", "Close application"),
         ("Recordings", "Recordings"),

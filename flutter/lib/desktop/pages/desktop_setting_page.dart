@@ -25,6 +25,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_hbb/utils/multi_window_manager.dart';
 
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/login.dart';
@@ -2922,21 +2923,68 @@ class _AtualizacaoState extends State<_Atualizacao> {
   }
 
   Future<void> _atualizar() async {
+    // Com sessão aberta (alguém acessando este PC ou janela de acesso a outro), não fecha.
+    final subJanelas = await rustDeskWinManager.getAllSubWindowIds();
+    if (gFFI.serverModel.clients.isNotEmpty || subJanelas.isNotEmpty) {
+      _status.value = translate('update_session_open');
+      return;
+    }
     _ocupado.value = true;
     try {
-      final r = await Process.run('schtasks',
-          ['/run', '/tn', '${bind.mainGetAppNameSync()} - Atualizador']);
-      if (r.exitCode == 0) {
-        _status.value = translate('update_started');
-      } else {
+      final app = bind.mainGetAppNameSync();
+      final r = await Process.run('schtasks', ['/run', '/tn', '$app - Atualizador']);
+      if (r.exitCode != 0) {
         _status.value =
             '${translate('update_start_failed')} (${r.stderr.toString().trim()})';
+        return;
       }
+      _status.value = translate('update_closing');
+      await _reabrirDepois(app);
+      // Fecha já: o instalador trocaria os arquivos de qualquer jeito.
+      await Future.delayed(const Duration(seconds: 2));
+      exit(0);
     } catch (e) {
       _status.value = '${translate('update_start_failed')} ($e)';
     } finally {
       _ocupado.value = false;
     }
+  }
+
+  // Processo separado (do usuário) que espera a versão nova ser instalada e abre o app.
+  // Se a atualização não acontecer em 10 minutos (ex.: adiada), reabre o app mesmo assim.
+  Future<void> _reabrirDepois(String app) async {
+    final pasta = File(Platform.resolvedExecutable).parent.path;
+    final alvo = _publicada.value;
+    final script = '''
+\$cfg = '$pasta\\atualizacao.json'; \$exe = '$pasta\\$app.exe'; \$alvo = [version]'$alvo'
+\$fim = (Get-Date).AddMinutes(10)
+do {
+  Start-Sleep -Seconds 5
+  try { \$v = [version]((Get-Content \$cfg -Raw | ConvertFrom-Json).versao) } catch { \$v = \$null }
+} while ((-not \$v -or \$v -lt \$alvo) -and (Get-Date) -lt \$fim)
+Start-Sleep -Seconds 10
+if (Test-Path \$exe) { Start-Process \$exe }
+''';
+    final bytes = <int>[];
+    for (final u in script.codeUnits) {
+      bytes..add(u & 0xff)..add(u >> 8);
+    }
+    final ps =
+        '${Platform.environment['SystemRoot'] ?? 'C:\\Windows'}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+    await Process.start(
+        ps,
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-WindowStyle',
+          'Hidden',
+          '-EncodedCommand',
+          base64Encode(bytes)
+        ],
+        workingDirectory: Platform.environment['TEMP'],
+        mode: ProcessStartMode.detached);
   }
 
   @override

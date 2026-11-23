@@ -94,7 +94,9 @@ function Set-PermissaoDisparo {
         $svc.Connect()
         $tarefa = $svc.GetFolder("\").GetTask($NomeTarefa)
         $sd = $tarefa.GetSecurityDescriptor(0xF)
-        if ($sd -notmatch '\(A;;GRGX;;;AU\)') {
+        # O Windows guarda GRGX como 0x1200a9. Só grava se faltar: regravar a tarefa
+        # enquanto ela roda interrompe a própria atualização.
+        if ($sd -notmatch '\(A;[^;]*;(GRGX|0x1200a9);;;AU\)') {
             $tarefa.SetSecurityDescriptor($sd + "(A;;GRGX;;;AU)", 0)
             Write-Log "Permissão para usuários dispararem a tarefa aplicada."
         }
