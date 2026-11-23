@@ -80,6 +80,13 @@ fn make_tray() -> hbb_common::ResultType<()> {
     } else {
         tray_menu.append_items(&[&open_i]).ok();
     }
+    // Suporte Appelsoft: encerra à força as janelas do app deste usuário (o serviço continua).
+    #[cfg(windows)]
+    let reiniciar_i = MenuItem::new(translate("Restart application".to_owned()), true, None);
+    #[cfg(windows)]
+    let fechar_i = MenuItem::new(translate("Close application".to_owned()), true, None);
+    #[cfg(windows)]
+    tray_menu.append_items(&[&reiniciar_i, &fechar_i]).ok();
     let tooltip = |count: usize| {
         if count == 0 {
             format!(
@@ -188,6 +195,23 @@ fn make_tray() -> hbb_common::ResultType<()> {
         }
 
         if let Ok(event) = menu_channel.try_recv() {
+            #[cfg(windows)]
+            if event.id == reiniciar_i.id() || event.id == fechar_i.id() {
+                let fechar = event.id == fechar_i.id();
+                encerrar_processos_do_usuario();
+                if fechar {
+                    let _ = _tray_icon
+                        .lock()
+                        .unwrap()
+                        .as_mut()
+                        .map(|t| t.set_visible(false));
+                    *control_flow = ControlFlow::Exit;
+                } else {
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
+                    open_func();
+                }
+                return;
+            }
             if let Some(quit_i) = &quit_i {
                 if event.id == quit_i.id() {
                     /* failed in windows, seems no permission to check system process
@@ -260,6 +284,30 @@ fn make_tray() -> hbb_common::ResultType<()> {
             }
         }
     });
+}
+
+#[cfg(windows)]
+fn encerrar_processos_do_usuario() {
+    // Mata todos os <app>.exe deste usuário, menos a própria bandeja. O serviço e o
+    // --server rodam como SYSTEM e não são afetados (o PC continua acessível).
+    use std::os::windows::process::CommandExt;
+    let exe = format!("{}.exe", crate::get_app_name());
+    let mut cmd = std::process::Command::new("taskkill");
+    cmd.args(["/F", "/IM", &exe, "/FI"])
+        .arg(format!("PID ne {}", std::process::id()));
+    if let (Ok(dominio), Ok(usuario)) = (std::env::var("USERDOMAIN"), std::env::var("USERNAME")) {
+        if !usuario.is_empty() {
+            cmd.arg("/FI").arg(format!("USERNAME eq {}\\{}", dominio, usuario));
+        }
+    }
+    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    match cmd.output() {
+        Ok(out) => log::info!(
+            "Bandeja: encerrar processos: {}",
+            String::from_utf8_lossy(&out.stdout).trim()
+        ),
+        Err(e) => log::error!("Bandeja: taskkill falhou: {}", e),
+    }
 }
 
 #[cfg(windows)]

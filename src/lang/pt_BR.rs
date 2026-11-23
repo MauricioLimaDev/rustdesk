@@ -2,6 +2,8 @@ lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Logs", "Logs"),
+        ("Restart application", "Reiniciar aplicação"),
+        ("Close application", "Fechar aplicação"),
         ("Recordings", "Gravações"),
         ("Open recording log", "Abrir log da recompactação"),
         ("recording_log_empty", "Ainda não há registro. O log aparece depois da primeira verificação (1 minuto após abrir o app)."),
