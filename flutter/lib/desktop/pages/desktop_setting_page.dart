@@ -2663,7 +2663,17 @@ class _GravacoesState extends State<_Gravacoes> {
           Text(translate(_temFfmpeg
                   ? 'recompress_recordings_tip'
                   : 'recompress_recordings_unavailable'))
-              .marginOnly(left: _kContentHMargin, bottom: 12),
+              .marginOnly(left: _kContentHMargin, bottom: 8),
+          _Button('Open recording log', () async {
+            final arq = File(
+                '${await bind.mainGetLogDir()}${Platform.pathSeparator}gravacoes.log');
+            if (await arq.exists()) {
+              launchUrl(Uri.file(arq.path));
+            } else {
+              showToast(translate('recording_log_empty'));
+            }
+          }),
+          const SizedBox(height: 12),
         ]),
         _Card(title: 'Cleanup', children: [
           Row(children: [
