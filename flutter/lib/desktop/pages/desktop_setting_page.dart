@@ -24,6 +24,7 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:http/http.dart' as http;
 
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/login.dart';
@@ -2782,7 +2783,9 @@ class _AboutState extends State<_About> {
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
-        child: _Card(title: translate('About RustDesk'), children: [
+        child: Column(children: [
+          if (isWindows) const _Atualizacao(),
+          _Card(title: translate('About RustDesk'), children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2848,8 +2851,113 @@ class _AboutState extends State<_About> {
             ],
           ).marginOnly(left: _kContentHMargin)
         ]),
+        ]),
       );
     });
+  }
+}
+
+// Card "Atualização" (aba Sobre, Windows): compara a versão instalada (atualizacao.json
+// ao lado do exe) com a publicada no canal e, se houver nova, dispara a tarefa do
+// atualizador, que roda como SYSTEM e confere o SHA-256 antes de instalar.
+class _Atualizacao extends StatefulWidget {
+  const _Atualizacao({Key? key}) : super(key: key);
+
+  @override
+  State<_Atualizacao> createState() => _AtualizacaoState();
+}
+
+class _AtualizacaoState extends State<_Atualizacao> {
+  String _instalada = '';
+  String _canal = '';
+  final _publicada = ''.obs;
+  final _status = ''.obs;
+  final _ocupado = false.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      final f = File(
+          '${File(Platform.resolvedExecutable).parent.path}${Platform.pathSeparator}atualizacao.json');
+      if (f.existsSync()) {
+        final j = jsonDecode(f.readAsStringSync());
+        _instalada = (j['versao'] ?? '').toString();
+        _canal = (j['canal'] ?? '').toString();
+      }
+    } catch (_) {}
+  }
+
+  static int _comparar(String a, String b) {
+    final x = a.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final y = b.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    for (var i = 0; i < 4; i++) {
+      final p = i < x.length ? x[i] : 0;
+      final q = i < y.length ? y[i] : 0;
+      if (p != q) return p.compareTo(q);
+    }
+    return 0;
+  }
+
+  bool get _temNova =>
+      _publicada.value.isNotEmpty && _comparar(_publicada.value, _instalada) > 0;
+
+  Future<void> _verificar() async {
+    if (_canal.isEmpty) return;
+    _ocupado.value = true;
+    _status.value = translate('Checking...');
+    try {
+      final r = await http.get(Uri.parse(_canal),
+          headers: {'Cache-Control': 'no-cache'}).timeout(
+          const Duration(seconds: 30));
+      if (r.statusCode != 200) throw 'HTTP ${r.statusCode}';
+      _publicada.value = (jsonDecode(r.body)['versao'] ?? '').toString();
+      _status.value =
+          translate(_temNova ? 'update_available' : 'up_to_date');
+    } catch (e) {
+      _status.value = '${translate('Error')}: $e';
+    } finally {
+      _ocupado.value = false;
+    }
+  }
+
+  Future<void> _atualizar() async {
+    _ocupado.value = true;
+    try {
+      final r = await Process.run('schtasks',
+          ['/run', '/tn', '${bind.mainGetAppNameSync()} - Atualizador']);
+      if (r.exitCode == 0) {
+        _status.value = translate('update_started');
+      } else {
+        _status.value =
+            '${translate('update_start_failed')} (${r.stderr.toString().trim()})';
+      }
+    } catch (e) {
+      _status.value = '${translate('update_start_failed')} ($e)';
+    } finally {
+      _ocupado.value = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(title: 'app_update_title', children: [
+      Text('${translate('Installed version')}: ${_instalada.isEmpty ? '-' : _instalada}')
+          .marginOnly(left: _kContentHMargin),
+      Obx(() => _publicada.value.isEmpty
+          ? const SizedBox.shrink()
+          : Text('${translate('Published version')}: ${_publicada.value}')
+              .marginOnly(left: _kContentHMargin)),
+      Obx(() => _status.value.isEmpty
+          ? const SizedBox.shrink()
+          : Text(_status.value).marginOnly(left: _kContentHMargin)),
+      Obx(() => _Button('Check for updates', _verificar,
+          enabled: !_ocupado.value && _canal.isNotEmpty)),
+      Obx(() => _temNova
+          ? _Button('Update now', _atualizar, enabled: !_ocupado.value)
+          : const SizedBox.shrink()),
+      const SizedBox(height: 12),
+    ]);
   }
 }
 

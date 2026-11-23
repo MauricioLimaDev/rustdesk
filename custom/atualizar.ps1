@@ -85,11 +85,30 @@ function Set-AclSomenteAdmins([string]$Caminho) {
     }
 }
 
+function Set-PermissaoDisparo {
+    # Deixa usuários autenticados DISPARAREM a tarefa (botão "Verificar atualização" do app).
+    # Só ler e executar (GRGX): ninguém além de administradores altera a tarefa, e ela
+    # continua rodando só este script, que baixa do domínio fixo e confere o SHA-256.
+    try {
+        $svc = New-Object -ComObject Schedule.Service
+        $svc.Connect()
+        $tarefa = $svc.GetFolder("\").GetTask($NomeTarefa)
+        $sd = $tarefa.GetSecurityDescriptor(0xF)
+        if ($sd -notmatch '\(A;;GRGX;;;AU\)') {
+            $tarefa.SetSecurityDescriptor($sd + "(A;;GRGX;;;AU)", 0)
+            Write-Log "Permissão para usuários dispararem a tarefa aplicada."
+        }
+    } catch {
+        Write-Log "Não aplicou a permissão de disparo: $($_.Exception.Message)"
+    }
+}
+
 function Register-Tarefa {
     $argumentos = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`""
     $existente = Get-ScheduledTask -TaskName $NomeTarefa -ErrorAction SilentlyContinue
     if ($existente -and $existente.Actions.Count -eq 1 -and $existente.Actions[0].Arguments -eq $argumentos) {
         # Já aponta para este script. Não mexe (a tarefa pode estar rodando a própria atualização).
+        Set-PermissaoDisparo
         return
     }
     $acao = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument $argumentos
@@ -104,6 +123,7 @@ function Register-Tarefa {
     Register-ScheduledTask -TaskName $NomeTarefa -Action $acao -Trigger @($periodico, $boot) -Settings $config `
         -Principal $principal -Description "Atualiza o $NomeApp a partir de https://$Dominio (confere SHA-256)." -Force | Out-Null
     Write-Log "Tarefa '$NomeTarefa' registrada."
+    Set-PermissaoDisparo
 }
 
 function Test-SessaoAberta {
@@ -131,6 +151,8 @@ try {
         Register-Tarefa
         exit 0
     }
+    # Instalações que registraram a tarefa antes da permissão de disparo ganham ela aqui.
+    Set-PermissaoDisparo
 
     if (-not (Test-Path $Exe))       { Write-Log "Não instalado ($Exe). Nada a fazer."; exit 0 }
     if (-not (Test-Path $ArqConfig)) { Write-Log "Sem $ArqConfig. Nada a fazer."; exit 0 }

@@ -2,6 +2,16 @@ lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Logs", "Logs"),
+        ("Checking...", "Checking..."),
+        ("app_update_title", "Update"),
+        ("Installed version", "Installed version"),
+        ("Published version", "Available version"),
+        ("Check for updates", "Check for updates"),
+        ("Update now", "Update now"),
+        ("update_available", "A new version is available. Click Update now."),
+        ("up_to_date", "You are on the latest version."),
+        ("update_started", "Update started. In 1 to 2 minutes the app closes, installs the new version and the service comes back by itself. With an open session, it waits until the session ends."),
+        ("update_start_failed", "Could not start the update. Reinstall this version once to create the update task."),
         ("Restart application", "Restart application"),
         ("Close application", "Close application"),
         ("Recordings", "Recordings"),
