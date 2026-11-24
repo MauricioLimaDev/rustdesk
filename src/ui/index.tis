@@ -32,6 +32,8 @@ var app;
 var tmp = handler.get_connect_status();
 var connect_status = tmp[0];
 var service_stopped = handler.get_option("stop-service") == "Y";
+// Segundos seguidos sem conexão (Cliente instalado mostra "Reiniciar serviço").
+var sem_conexao = 0;
 var disable_udp = handler.get_option("disable-udp") == "Y";
 var using_public_server = handler.using_public_server();
 var software_update_url = "";
@@ -74,6 +76,7 @@ class ConnectStatus: Reactor.Component {
                 <span class={"connect-status-icon connect-status" + (service_stopped ? 0 : connect_status)} />
                 {this.getConnectStatusStr()}
                 {service_stopped ? <span .link #start-service>{translate('Start service')}</span> : ""}
+                {!service_stopped && sem_conexao >= 20 && handler.is_installed() ? <span .link #reiniciar-servico>{translate("reiniciar_servico")}</span> : ""}
             </div>;
     }
 
@@ -91,6 +94,13 @@ class ConnectStatus: Reactor.Component {
 
     event click $(#start-service) () {
         handler.set_option("stop-service", "");
+    }
+
+    event click $(#reiniciar-servico) () {
+        var ok = handler.reiniciar_servico();
+        sem_conexao = 0;
+        app.connect_status.update();
+        msgbox("custom-nocancel-nook-hasclose", translate("reiniciar_servico"), translate(ok ? "reiniciar_servico_iniciado" : "reiniciar_servico_cancelado"));
     }
 
     event click $(#setup-server) () {
@@ -1436,6 +1446,14 @@ function checkConnectStatus() {
             app.connect_status.update();
         }
         tmp = handler.get_connect_status();
+        if (tmp[0] == 1 || service_stopped) {
+            var tinha_link = sem_conexao >= 20;
+            sem_conexao = 0;
+            if (tinha_link) app.connect_status.update();
+        } else {
+            sem_conexao += 1;
+            if (sem_conexao == 20) app.connect_status.update();
+        }
         if (tmp[0] != connect_status) {
             connect_status = tmp[0];
             app.connect_status.update();

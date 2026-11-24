@@ -1442,6 +1442,14 @@ pub fn main_gravacoes_tem_ffmpeg() -> SyncReturn<bool> {
     SyncReturn(false)
 }
 
+/// Reiniciar o serviço (Cliente sem conexão). Pede UAC; false se recusado.
+pub fn main_reiniciar_servico() -> bool {
+    #[cfg(windows)]
+    return crate::servico::pedir_reinicio();
+    #[cfg(not(windows))]
+    false
+}
+
 pub fn main_get_uuid() -> String {
     get_uuid()
 }

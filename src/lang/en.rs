@@ -2,6 +2,9 @@ lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Logs", "Logs"),
+        ("reiniciar_servico", "Restart service"),
+        ("reiniciar_servico_iniciado", "Restarting the service. Please wait a few seconds."),
+        ("reiniciar_servico_cancelado", "Could not restart: administrator permission is required."),
         ("View note", "View note"),
         ("Copy", "Copy"),
         ("Checking...", "Checking..."),

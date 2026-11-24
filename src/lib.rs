@@ -43,6 +43,8 @@ pub mod flutter;
 pub mod flutter_ffi;
 #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
 mod gravacoes;
+#[cfg(windows)]
+mod servico;
 use common::*;
 mod auth_2fa;
 mod trusted_devices;

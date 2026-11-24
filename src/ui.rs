@@ -599,6 +599,13 @@ impl UI {
         crate::ui_interface::limpar_logs()
     }
 
+    fn reiniciar_servico(&self) -> bool {
+        #[cfg(windows)]
+        return crate::servico::pedir_reinicio();
+        #[cfg(not(windows))]
+        false
+    }
+
     fn open_url(&self, url: String) {
         #[cfg(windows)]
         let p = "explorer";
@@ -808,6 +815,7 @@ impl sciter::EventHandler for UI {
         fn open_url(String);
         fn get_log_dir();
         fn clear_logs();
+        fn reiniciar_servico();
         fn change_id(String);
         fn get_async_job_status();
         fn post_request(String, String, String);

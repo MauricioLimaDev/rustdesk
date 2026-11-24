@@ -35,6 +35,9 @@ class OnlineStatusWidget extends StatefulWidget {
 class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   final _svcStopped = Get.find<RxBool>(tag: 'stop-service');
   final _svcIsUsingPublicServer = true.obs;
+  // Segundos seguidos sem conexão com o servidor (Cliente mostra "Reiniciar serviço").
+  final _semConexao = 0.obs;
+  bool _reiniciando = false;
   Timer? _updateTimer;
 
   double get em => 14.0;
@@ -73,6 +76,29 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
                     await start_service(true);
                   },
                   child: Text(translate("Start service"),
+                      style: TextStyle(
+                          decoration: TextDecoration.underline, fontSize: em)))
+              .marginOnly(left: em),
+        );
+
+    // Cliente instalado e sem conexão há 20 s: oferece reiniciar o serviço (pede UAC).
+    reiniciarServicoWidget() => Offstage(
+          offstage: !(isWindows &&
+              !_svcStopped.value &&
+              _semConexao.value >= 20 &&
+              bind.mainIsInstalled()),
+          child: InkWell(
+                  onTap: () async {
+                    if (_reiniciando) return;
+                    _reiniciando = true;
+                    final ok = await bind.mainReiniciarServico();
+                    _semConexao.value = 0;
+                    showToast(translate(ok
+                        ? "reiniciar_servico_iniciado"
+                        : "reiniciar_servico_cancelado"));
+                    _reiniciando = false;
+                  },
+                  child: Text(translate("reiniciar_servico"),
                       style: TextStyle(
                           decoration: TextDecoration.underline, fontSize: em)))
               .marginOnly(left: em),
@@ -147,6 +173,10 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
                         child: startServiceWidget(),
                         alignment: Alignment.centerLeft)
                     .marginOnly(top: 2.0, left: 22.0),
+                Align(
+                        child: reiniciarServicoWidget(),
+                        alignment: Alignment.centerLeft)
+                    .marginOnly(top: 2.0, left: 22.0),
               ],
             )
           : basicWidget()),
@@ -179,6 +209,11 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
       stateGlobal.svcStatus.value = SvcStatus.ready;
     } else {
       stateGlobal.svcStatus.value = SvcStatus.notReady;
+    }
+    if (statusNum == 1 || _svcStopped.value) {
+      _semConexao.value = 0;
+    } else {
+      _semConexao.value += 1;
     }
     _svcIsUsingPublicServer.value = await bind.mainIsUsingPublicServer();
     try {
