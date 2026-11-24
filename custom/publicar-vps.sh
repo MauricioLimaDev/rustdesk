@@ -8,6 +8,7 @@
 #
 # Na VPS (~/rustdesk/downloads):
 #   cliente windows -> cliente.exe + versao.json            (link público /download/cliente)
+#   cliente-x86     -> cliente-x86.exe + versao-x86.json    (link público /download/cliente-x86)
 #   equipe  windows -> equipe.exe (painel) + a/<CHAVE>/equipe.exe + a/<CHAVE>/versao.json
 #   equipe  mac     -> equipe-mac-arm64.dmg (painel)
 # Cada arquivo do painel ganha um <arquivo>.versao com o número (mostrado nos Downloads).
@@ -50,6 +51,15 @@ case "$PLATAFORMA/$CANAL" in
       cp -f $TMP.bin cliente.exe.novo && mv -f cliente.exe.novo cliente.exe && echo '$VERSAO' > cliente.exe.versao &&
       { cp -f versao.json versao.json.anterior 2>/dev/null || true; } &&
       mv -f $TMP.json versao.json"
+    ;;
+  windows/cliente-x86)
+    # Cliente 32 bits (Sciter): arquivo e canal próprios, para o 64 bits nunca chegar nele.
+    VERFILE="cliente-x86.exe.versao"
+    printf '{"versao": "%s", "sha256": "%s", "url": "%s"}\n' "$VERSAO" "$HASH" "$BASE/cliente-x86" > versao.json
+    scp "${SSH_OPTS[@]}" versao.json "$DEST:$PASTA/$TMP.json"
+    REMOTO="
+      cp -f $TMP.bin cliente-x86.exe.novo && mv -f cliente-x86.exe.novo cliente-x86.exe && echo '$VERSAO' > cliente-x86.exe.versao &&
+      mv -f $TMP.json versao-x86.json"
     ;;
   windows/equipe)
     VERFILE="equipe.exe.versao"

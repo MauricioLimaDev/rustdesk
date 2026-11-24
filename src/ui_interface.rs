@@ -1793,3 +1793,38 @@ mod tests {
         assert_eq!(validate_windows_service_video_save_directory("  "), None);
     }
 }
+
+/// Pasta de logs do app (Suporte Appelsoft: aba Logs no Flutter e menu na interface Sciter).
+pub fn pasta_de_logs() -> String {
+    let dir = Config::log_path();
+    std::fs::create_dir_all(&dir).ok();
+    dir.to_string_lossy().to_string()
+}
+
+/// Apaga os .log da pasta de logs (e subpastas). Os arquivos em uso (_rCURRENT.log)
+/// ficam, porque o app está escrevendo neles. Devolve quantos foram apagados.
+pub fn limpar_logs() -> i32 {
+    fn limpar(dir: &std::path::Path, n: &mut i32) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(entries) => entries,
+            Err(_) => return,
+        };
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                limpar(&p, n);
+                continue;
+            }
+            let nome = p
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
+            if nome.ends_with(".log") && !nome.contains("rCURRENT") && std::fs::remove_file(&p).is_ok() {
+                *n += 1;
+            }
+        }
+    }
+    let mut n = 0;
+    limpar(&Config::log_path(), &mut n);
+    n
+}

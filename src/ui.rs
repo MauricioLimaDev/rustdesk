@@ -591,6 +591,14 @@ impl UI {
         get_uuid()
     }
 
+    fn get_log_dir(&self) -> String {
+        crate::ui_interface::pasta_de_logs()
+    }
+
+    fn clear_logs(&self) -> i32 {
+        crate::ui_interface::limpar_logs()
+    }
+
     fn open_url(&self, url: String) {
         #[cfg(windows)]
         let p = "explorer";
@@ -798,6 +806,8 @@ impl sciter::EventHandler for UI {
         fn get_software_store_path();
         fn get_software_ext();
         fn open_url(String);
+        fn get_log_dir();
+        fn clear_logs();
         fn change_id(String);
         fn get_async_job_status();
         fn post_request(String, String, String);

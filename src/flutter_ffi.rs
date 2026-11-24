@@ -1420,34 +1420,12 @@ pub fn main_get_my_id() -> String {
 }
 
 pub fn main_get_log_dir() -> String {
-    config::Config::log_path().to_string_lossy().to_string()
+    crate::ui_interface::pasta_de_logs()
 }
 
-/// Apaga os .log da pasta de logs (e subpastas). Os arquivos em uso (_rCURRENT.log)
-/// ficam, porque o app está escrevendo neles. Devolve quantos foram apagados.
+/// Apaga os .log antigos (ver ui_interface::limpar_logs). Devolve quantos foram apagados.
 pub fn main_clear_logs() -> i32 {
-    fn limpar(dir: &std::path::Path, n: &mut i32) {
-        let Ok(entries) = std::fs::read_dir(dir) else {
-            return;
-        };
-        for e in entries.flatten() {
-            let p = e.path();
-            if p.is_dir() {
-                limpar(&p, n);
-                continue;
-            }
-            let nome = p
-                .file_name()
-                .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or_default();
-            if nome.ends_with(".log") && !nome.contains("rCURRENT") && std::fs::remove_file(&p).is_ok() {
-                *n += 1;
-            }
-        }
-    }
-    let mut n = 0;
-    limpar(&config::Config::log_path(), &mut n);
-    n
+    crate::ui_interface::limpar_logs()
 }
 
 /// Inicia a manutenção das gravações (recompactar e apagar antigas). Só a janela principal chama.
