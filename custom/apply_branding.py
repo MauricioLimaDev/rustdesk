@@ -138,6 +138,15 @@ def main():
              '    let uninstall_str = get_uninstall(false, false)?;')
     print("Instalação sempre cria o serviço (ignora stop-service antigo).")
 
+    # "Usa servidor público?" só olhava a opção custom-rendezvous-server da tela de Rede.
+    # Com o servidor embutido no build, o app achava que usava o público do RustDesk:
+    # mostrava "configure seu próprio servidor", escondia FPS/qualidade alta no relay e
+    # consultava o status online a cada 20 s. Agora confere o servidor em uso de fato.
+    sub_once(ROOT / "src/common.rs",
+             r'crate::get_custom_rendezvous_server\(get_option\("custom-rendezvous-server"\)\)\.is_empty\(\)',
+             'is_public(&Config::get_rendezvous_server())')
+    print("Servidor embutido reconhecido como próprio (não público).")
+
     if os.environ.get("ATUALIZADOR") == "1":
         # O workflow põe atualizar.ps1 e atualizacao.json junto do exe. A instalação
         # registra a tarefa do atualizador; a desinstalação apaga a tarefa.
