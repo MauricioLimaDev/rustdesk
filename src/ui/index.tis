@@ -4,7 +4,7 @@ stdout.println("is_xfce: ", is_xfce);
 
 // See default height in common.tis `msgbox()`.
 const msgbox_default_height = 180;
-const incoming_only_width = 180;
+const incoming_only_width = 240;
 
 const outgoing_only = handler.is_outgoing_only();
 const incoming_only = handler.is_incoming_only();
@@ -733,7 +733,7 @@ class App: Reactor.Component
                     <div .left-pane style={incoming_only ? "width:*" : ""}>
                     <div>
                         {is_custom_client && handler.get_builtin_option("hide-powered-by-me") != "Y" ? <div .link #powered-by style="opacity:0.5;font-size:0.8em;text-decoration:underline">{translate('powered_by_me')}</div> : ""}
-                        <div .title style="flow:horizontal; position:relative; height:1.6em; line-height:1.6em">
+                        <div .title style="flow:horizontal; position:relative; min-height:1.6em; line-height:1.3em">
                             <span>{translate('Your Desktop')}</span>
                             {outgoing_only ? <span .link #open-settings style="position:absolute; right:0; bottom:0; transform:scale(0.6); transform-origin:right bottom; opacity:0.85">{svg_menu}</span> : ""}
                         </div>
