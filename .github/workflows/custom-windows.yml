@@ -86,6 +86,8 @@ jobs:
           # quem conecta (equipe/completo) grava toda sessão, sem poder desligar
           AUTO_RECORD_OUTGOING: ${{ inputs.conn_type != 'incoming' && '1' || '0' }}
           ATUALIZADOR: ${{ env.CANAL != '' && '1' || '0' }}
+          # Cliente: tarefa pelo schtasks, sem PowerShell na instalação (antivírus). Equipe: como antes.
+          ATUALIZADOR_MODO: ${{ env.CANAL == 'cliente' && 'schtasks' || 'powershell' }}
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
           API_SERVER: ${{ secrets.API_SERVER }}

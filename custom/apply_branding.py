@@ -147,7 +147,28 @@ def main():
              'is_public(&Config::get_rendezvous_server())')
     print("Servidor embutido reconhecido como próprio (não público).")
 
-    if os.environ.get("ATUALIZADOR") == "1":
+    modo_atualizador = os.environ.get("ATUALIZADOR_MODO", "powershell").strip()
+    if os.environ.get("ATUALIZADOR") == "1" and modo_atualizador == "schtasks":
+        # Cliente: sem PowerShell na instalação (PowerShell oculto com Bypass criando
+        # tarefa SYSTEM é o padrão que o Defender marca como Behavior:Win32/Persistence).
+        # A tarefa é criada pelo schtasks nativo, só se ainda não existir (não regrava a
+        # tarefa que pode estar rodando a própria atualização), a cada 4 horas, e roda o
+        # script com RemoteSigned, sem janela oculta. A desinstalação apaga a tarefa.
+        bat = ('schtasks /query /tn "{app_name} - Atualizador" >nul 2>&1\n'
+               'if errorlevel 1 if exist "{path}\\atualizar.ps1" '
+               'schtasks /create /tn "{app_name} - Atualizador" /ru SYSTEM /rl HIGHEST '
+               '/sc HOURLY /mo 4 /f /tr "\\"%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\\" '
+               '-NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File \\"{path}\\atualizar.ps1\\""')
+        rust_lit = bat.replace("\\", "\\\\").replace('"', '\\"')
+        sub_once(ROOT / "src/platform/windows.rs",
+                 r'^\{after_install\}\r?\n\{sleep\}$',
+                 '{after_install}\n' + rust_lit + '\n{sleep}')
+        sub_once(ROOT / "src/platform/windows.rs",
+                 r'run_cmds\(get_uninstall\(kill_self, true\)\?, true, "uninstall"\)',
+                 r'run_cmds(format!("schtasks /delete /tn \"{} - Atualizador\" /f\n{}", '
+                 r'crate::get_app_name(), get_uninstall(kill_self, true)?), true, "uninstall")')
+        print("Atualizador automático (schtasks, sem PowerShell na instalação) registrado.")
+    elif os.environ.get("ATUALIZADOR") == "1":
         # O workflow põe atualizar.ps1 e atualizacao.json junto do exe. A instalação
         # registra a tarefa do atualizador; a desinstalação apaga a tarefa.
         sub_once(ROOT / "src/platform/windows.rs",

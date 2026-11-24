@@ -2938,6 +2938,12 @@ class _AtualizacaoState extends State<_Atualizacao> {
             '${translate('update_start_failed')} (${r.stderr.toString().trim()})';
         return;
       }
+      if (bind.isIncomingOnly()) {
+        // Cliente: sem processo extra para reabrir (PowerShell codificado é sinal de
+        // ameaça para antivírus). A tarefa instala; o serviço e a bandeja voltam sozinhos.
+        _status.value = translate('update_started');
+        return;
+      }
       _status.value = translate('update_closing');
       await _reabrirDepois(app);
       // Fecha já: o instalador trocaria os arquivos de qualquer jeito.
