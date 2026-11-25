@@ -94,6 +94,8 @@ if [ -n "\$atual" ] && [ "\$(printf '%s\n%s\n' "\$atual" '$VERSAO' | sort -V | t
 fi
 echo '$HASH  $TMP.bin' | sha256sum -c -
 $REMOTO
+# Histórico de publicações (usado na contagem de downloads por versão).
+echo "\$(date -Iseconds) $PLATAFORMA/$CANAL $VERSAO" >> publicacoes.log
 rm -f $TMP.bin
 chmod 644 *.exe *.json *.dmg *.versao 2>/dev/null || true
 echo "Publicado na VPS: $CANAL ($PLATAFORMA) $VERSAO"
