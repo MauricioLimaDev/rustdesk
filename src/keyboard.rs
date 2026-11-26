@@ -202,6 +202,9 @@ pub mod client {
 
                 #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
                 KEYBOARD_HOOKED.store(true, Ordering::SeqCst);
+                // Appelsoft: com o teclado já capturado, liga o unicode se o modo pedir.
+                #[cfg(windows)]
+                update_grab_get_key_name(keyboard_mode);
 
                 #[cfg(target_os = "linux")]
                 let had_owner = gs.owner.is_some();
@@ -507,10 +510,15 @@ pub mod client {
 
 #[cfg(windows)]
 pub fn update_grab_get_key_name(keyboard_mode: &str) {
+    // Appelsoft: o cálculo de unicode roda dentro do hook global de teclado
+    // (ToUnicodeEx) e consome o estado das teclas mortas do Windows. Ligado fora da
+    // captura, os acentos dobravam ou sumiam nos programas do próprio analista
+    // (Teams, Word...) enquanto uma sessão em Tradução/Legado estava aberta.
+    // Agora só liga enquanto a sessão está com o teclado capturado.
+    let capturado = KEYBOARD_HOOKED.load(Ordering::SeqCst);
     match keyboard_mode {
         "map" => rdev::set_get_key_unicode(false),
-        "translate" => rdev::set_get_key_unicode(true),
-        "legacy" => rdev::set_get_key_unicode(true),
+        "translate" | "legacy" => rdev::set_get_key_unicode(capturado),
         _ => {}
     };
 }
